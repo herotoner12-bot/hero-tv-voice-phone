@@ -1,4 +1,4 @@
-name: Build HERO TV VOICE (phone)
+name: HERO Phone Build v2 (no gradlew)
 
 on:
   push:
