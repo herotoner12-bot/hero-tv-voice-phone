@@ -11,29 +11,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # يجد مجلد المشروع تلقائياً (حتى لو رُفع داخل مجلد فرعي) دون الاعتماد على gradlew
+      - name: Locate project
+        id: proj
+        run: |
+          f=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle.kts not found. Repository contents:"
+            ls -R . | grep -v '^./.git' | head -80
+            exit 1
+          fi
+          d=$(dirname "$f")
+          echo "Project dir: $d"
+          ls -la "$d"
+          echo "dir=$d" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
+      # يثبّت Gradle 8.14.3 مباشرة، فلا حاجة لملف gradlew
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        working-directory: ${{ steps.proj.outputs.dir }}
+        run: gradle --no-daemon testDebugUnitTest
 
       - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        working-directory: ${{ steps.proj.outputs.dir }}
+        run: gradle --no-daemon assembleDebug
 
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
-          path: app/build/reports/tests/testDebugUnitTest/
+          path: ${{ steps.proj.outputs.dir }}/app/build/reports/tests/testDebugUnitTest/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: HERO-TV-VOICE-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/app-debug.apk
