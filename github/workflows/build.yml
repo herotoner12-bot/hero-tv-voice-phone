@@ -1,4 +1,4 @@
-name: HERO Phone Build v2 (no gradlew)
+name: Build HERO TV VOICE (phone)
 
 on:
   push:
@@ -16,6 +16,14 @@ jobs:
         id: proj
         run: |
           f=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          if [ -z "$f" ]; then
+            # لو رُفع المشروع كملف zip دون فك ضغطه، نفكّه هنا تلقائياً
+            for z in $(find . -name '*.zip' -not -path './.git/*'); do
+              echo "Unzipping $z"
+              unzip -q -o "$z" -d _unzipped || true
+            done
+            f=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          fi
           if [ -z "$f" ]; then
             echo "settings.gradle.kts not found. Repository contents:"
             ls -R . | grep -v '^./.git' | head -80
